@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keboen Arsena — Selada Keriting</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="hidden" style="position:fixed;inset:0;background:var(--off-white);z-index:9998;display:flex;align-items:center;justify-content:center;">
+  <div class="card" style="width:100%;max-width:360px;margin:0;">
+    <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="text-align:center;margin-bottom:6px;">
+        <div class="logo-eyebrow" style="justify-content:center;display:flex;">Dashboard</div>
+        <div class="logo-name" style="font-size:26px;">Keboen<span>Arsena</span></div>
+        <div class="logo-product" style="margin-top:10px;">Selada Keriting</div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-mid);font-weight:600;">Email</label>
+        <input type="email" id="login-email" placeholder="nama@email.com" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-mid);font-weight:600;">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;">
+      </div>
+      <div id="loginError" style="display:none;color:var(--danger);font-size:12.5px;background:var(--danger-bg);padding:8px 10px;border-radius:8px;"></div>
+      <button class="btn btn-primary" id="btnLogin" onclick="doLogin()" style="width:100%;justify-content:center;">Masuk</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-text">Memuat Data Keboen Arsena…</div>
+</div>
+
+
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-eyebrow">Dashboard</div>
+    <div class="logo-name">Keboen<span>Arsena</span></div>
+    <div class="logo-product">Selada Keriting</div>
+    <div class="sync-status" id="syncStatus">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">Menghubungkan…</span>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-label">Utama</div>
+    <div class="nav-item active" onclick="nav('dashboard',this)"><span class="ic">🏠</span> Dashboard</div>
+    <div class="nav-item" onclick="nav('batch',this)"><span class="ic">🌱</span> Batch Tanam</div>
+    <div class="nav-label">Keuangan</div>
+    <div class="nav-item" onclick="nav('keuangan',this)"><span class="ic">📊</span> Laporan Keuangan</div>
+    <div class="nav-item" onclick="nav('rencanabulan',this)"><span class="ic">📅</span> Rencana Bulanan</div>
+    <div class="nav-item" onclick="nav('pengeluaran',this)"><span class="ic">💸</span> Pengeluaran</div>
+    <div class="nav-item" onclick="nav('penjualan',this)"><span class="ic">🛒</span> Penjualan</div>
+    <div class="nav-item" onclick="nav('tempo',this)"><span class="ic">🕐</span> Hutang Tempo <span class="nav-badge" id="tempoCount" style="display:none">0</span></div>
+  </nav>
+  <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
+    <div><div class="status-dot"></div> Hidroponik · Rakit Apung</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--text-muted);">
+      <span id="currentUserEmail" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button class="btn btn-sm btn-outline" style="padding:3px 8px;font-size:11px;" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Dashboard</div>
+    <div class="topbar-right">
+      <div class="topbar-clock" id="clock">--:--</div>
+      <div class="avatar">KA</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page-section active" id="sec-dashboard">
+      <div class="stats-row" id="dashStats">
+        <div class="stat-card"><div class="stat-label">Batch Aktif</div><div class="stat-val">—</div></div>
+        <div class="stat-card"><div class="stat-label">Bibit di Rakit</div><div class="stat-val">—</div></div>
+        <div class="stat-card"><div class="stat-label">Siap Panen</div><div class="stat-val">—</div></div>
+        <div class="stat-card"><div class="stat-label">Piutang Tempo</div><div class="stat-val">—</div></div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-header"><div class="card-title">🌱 Batch Sedang Berjalan</div><span style="font-size:12px;color:var(--text-muted)" id="dashBatchCount">—</span></div>
+          <div class="card-body" style="padding:0">
+            <table><thead><tr><th>#</th><th>Semai</th><th>Bibit</th><th>Panen</th><th>Status</th></tr></thead>
+            <tbody id="dashBatchTable"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+      <!-- Saldo banner di dashboard -->
+      <div style="background:var(--green);border-radius:12px;padding:14px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace;margin-bottom:3px">Saldo Kas</div>
+          <div style="font-family:'Lora',serif;font-size:22px;font-weight:700;color:#fff" id="d-saldo">—</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:2px">Diperbarui</div>
+          <div style="font-size:12px;color:#fff;font-family:'DM Mono',monospace" id="d-saldo-date">—</div>
+        </div>
+      </div>
+
+      <!-- 4 kartu keuangan -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px">
+        <div class="card" style="margin-bottom:0"><div class="card-header"><div class="card-title">💵 Pemasukan</div></div><div class="card-body"><div style="font-family:'Lora',serif;font-size:22px;font-weight:700;color:var(--green)" id="d-income">—</div><div style="font-size:11px;color:var(--text-muted);margin-top:5px">terbayar</div><div style="font-size:11px;color:var(--warn);margin-top:4px" id="d-pending">—</div></div></div>
+        <div class="card" style="margin-bottom:0"><div class="card-header"><div class="card-title">💸 Pengeluaran</div></div><div class="card-body"><div style="font-family:'Lora',serif;font-size:22px;font-weight:700;color:var(--danger)" id="d-expense">—</div><div style="font-size:11px;color:var(--text-muted);margin-top:5px">biaya operasional</div></div></div>
+        <div class="card" style="margin-bottom:0"><div class="card-header"><div class="card-title">📊 Laba Bersih</div></div><div class="card-body"><div style="font-family:'Lora',serif;font-size:22px;font-weight:700" id="d-profit">—</div><div style="font-size:11px;color:var(--text-muted);margin-top:5px">pemasukan − biaya</div><div style="font-size:11px;margin-top:4px" id="d-profit-note"></div></div></div>
+        <div class="card" style="margin-bottom:0"><div class="card-header"><div class="card-title">📅 Anggaran Bulan Ini</div></div><div class="card-body"><div style="font-family:'Lora',serif;font-size:22px;font-weight:700" id="d-rencana-sisa">—</div><div style="font-size:11px;color:var(--text-muted);margin-top:5px" id="d-rencana-sub">sisa dari anggaran</div><div style="margin-top:8px"><div class="prog-bar"><div class="prog-fill" id="d-rencana-bar" style="width:0%"></div></div></div></div></div>
+      </div>
+
+      <!-- Ringkasan rencana bulanan di dashboard -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-header">
+          <div class="card-title">📅 Rencana vs Realisasi Bulan Ini</div>
+          <span style="font-size:12px;color:var(--text-muted)" id="d-rencana-month">—</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table>
+            <thead><tr><th>Kategori</th><th>Anggaran</th><th>Realisasi</th><th>Selisih</th><th>%</th></tr></thead>
+            <tbody id="d-rencana-table"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada rencana pengeluaran bulan ini.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BATCH -->
+    <div class="page-section" id="sec-batch">
+      <div class="sec-head">
+        <div><div class="sec-title">🌱 Batch Tanam</div><div class="sec-sub">Lacak siklus selada keriting · rakit apung</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-batch')">+ Tambah Batch</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">🌿 Batch Aktif</div></div>
+        <div class="card-body" style="padding:0">
+          <table><thead><tr><th>#</th><th>Tgl Semai</th><th>Bibit Semai</th><th>Pindah Rakit</th><th>Bibit Rakit</th><th>Est. Panen</th><th>Est. Hasil</th><th>Progress</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="batchActiveTable"><tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px">Memuat…</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">✅ Riwayat Panen</div></div>
+        <div class="card-body" style="padding:0">
+          <table><thead><tr><th>#</th><th>Semai</th><th>Bibit Semai</th><th>Bibit Rakit</th><th>Tgl Panen</th><th>Est. Hasil</th><th>Hasil Aktual</th><th>Selisih</th><th>Catatan</th></tr></thead>
+          <tbody id="batchHarvestTable"><tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Memuat…</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEUANGAN -->
+    <div class="page-section" id="sec-keuangan">
+      <div class="sec-head">
+        <div><div class="sec-title">📊 Laporan Keuangan</div><div class="sec-sub">Ringkasan pemasukan, pengeluaran & laba</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="display:flex;background:var(--green-pale);border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
+            <button id="tab-general" class="btn btn-primary btn-sm" style="border-radius:0;border:none" onclick="switchKeuTab('general')">General</button>
+            <button id="tab-bulan" class="btn btn-sm" style="border-radius:0;border:none;background:transparent;color:var(--text-muted)" onclick="switchKeuTab('bulan')">Per Bulan</button>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openModal('modal-saldo')">💰 Atur Saldo</button>
+        </div>
+      </div>
+
+      <!-- Saldo banner -->
+      <div style="background:var(--green);border-radius:12px;padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace;margin-bottom:4px">Saldo Kas Saat Ini</div>
+          <div style="font-family:'Lora',serif;font-size:28px;font-weight:700;color:#fff" id="k-saldo-display">—</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:4px">Diperbarui</div>
+          <div style="font-size:13px;color:#fff;font-family:'DM Mono',monospace" id="k-saldo-updated">—</div>
+        </div>
+      </div>
+
+      <!-- TAB GENERAL -->
+      <div id="keu-tab-general">
+        <div class="g3" style="margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">Total Pemasukan (Lunas)</div><div class="stat-val" id="k-income">—</div><div class="stat-sub" id="k-income-count">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total Pengeluaran</div><div class="stat-val" style="color:var(--danger)" id="k-expense">—</div><div class="stat-sub" id="k-expense-count">—</div></div>
+          <div class="stat-card"><div class="stat-label">Laba Bersih</div><div class="stat-val" id="k-profit">—</div><div class="stat-sub" id="k-profit-note">—</div></div>
+        </div>
+        <div class="g2">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><div class="card-title">📈 Tren 6 Bulan Terakhir</div></div>
+            <div class="card-body"><div id="chartArea" style="min-height:120px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">Belum ada data cukup.</div></div>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><div class="card-title">📋 Ringkasan Detail</div></div>
+            <div class="card-body">
+              <div class="fin-row"><span class="fin-label">Pemasukan Terbayar</span><span class="fin-val fin-income" id="k-fin-income">—</span></div>
+              <div class="fin-row"><span class="fin-label">Piutang Tempo (Belum Lunas)</span><span class="fin-val fin-pending" id="k-fin-pending">—</span></div>
+              <div class="fin-row"><span class="fin-label">Total Pengeluaran</span><span class="fin-val fin-expense" id="k-fin-expense">—</span></div>
+              <div class="fin-row"><span class="fin-label">Potensi (jika semua lunas)</span><span class="fin-val" style="color:var(--info)" id="k-fin-potential">—</span></div>
+              <div class="fin-row" style="background:var(--green-pale);margin:0 -20px;padding:11px 20px;border-top:2px solid var(--green-border)">
+                <span class="fin-label fin-total">💚 Laba Bersih (Terbayar)</span>
+                <span class="fin-val fin-total" id="k-fin-profit">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">💸 Komposisi Pengeluaran</div></div>
+          <div class="card-body" id="keuCatBody"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">Belum ada data pengeluaran.</div></div>
+        </div>
+      </div>
+
+      <!-- TAB PER BULAN -->
+      <div id="keu-tab-bulan" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <select id="bulan-select" onchange="renderKeuBulan()" style="border:1.5px solid var(--border);border-radius:9px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:13px;background:var(--white);color:var(--text);outline:none"></select>
+          <span style="font-size:12px;color:var(--text-muted)">Pilih bulan untuk melihat detail</span>
+        </div>
+        <div class="g3" style="margin-bottom:20px">
+          <div class="stat-card"><div class="stat-label">Pemasukan Bulan Ini</div><div class="stat-val" id="bln-income">—</div><div class="stat-sub" id="bln-income-sub">—</div></div>
+          <div class="stat-card"><div class="stat-label">Pengeluaran Bulan Ini</div><div class="stat-val" style="color:var(--danger)" id="bln-expense">—</div><div class="stat-sub" id="bln-expense-sub">—</div></div>
+          <div class="stat-card"><div class="stat-label">Laba Bulan Ini</div><div class="stat-val" id="bln-profit">—</div><div class="stat-sub" id="bln-profit-note">—</div></div>
+        </div>
+        <div class="g2">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><div class="card-title">💵 Penjualan Bulan Ini</div></div>
+            <div class="card-body" style="padding:0">
+              <table><thead><tr><th>Invoice</th><th>Tanggal</th><th>Pembeli</th><th>Total</th><th>Status</th></tr></thead>
+              <tbody id="bln-sale-table"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px">—</td></tr></tbody></table>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><div class="card-title">💸 Pengeluaran Bulan Ini</div></div>
+            <div class="card-body" style="padding:0">
+              <table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Jumlah</th></tr></thead>
+              <tbody id="bln-expense-table"><tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:16px">—</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RENCANA BULANAN -->
+    <div class="page-section" id="sec-rencanabulan">
+      <div class="sec-head">
+        <div><div class="sec-title">📅 Rencana Pengeluaran Bulanan</div><div class="sec-sub">Anggarkan pengeluaran sebelum bulan berjalan</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-rencana')">+ Tambah Rencana</button>
+      </div>
+      <div class="g3" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-label">Total Dianggarkan</div><div class="stat-val" id="r-total-plan">—</div></div>
+        <div class="stat-card"><div class="stat-label">Sudah Terealisasi</div><div class="stat-val" style="color:var(--warn)" id="r-total-real">—</div><div class="stat-sub" id="r-real-pct">—</div></div>
+        <div class="stat-card"><div class="stat-label">Sisa Anggaran</div><div class="stat-val" id="r-sisa">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Rencana Bulan
+            <select id="rencana-bulan-select" onchange="renderRencana()" style="margin-left:10px;border:1.5px solid var(--border);border-radius:7px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:12px;background:var(--white);color:var(--text);outline:none"></select>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openModal('modal-rencana')">+ Tambah</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table>
+            <thead><tr><th>Kategori & Keterangan</th><th>Anggaran</th><th>Terpakai</th><th>Sisa</th><th>Progress</th><th>Aksi</th></tr></thead>
+            <tbody id="rencanaTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Belum ada rencana pengeluaran.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PENGELUARAN -->
+    <div class="page-section" id="sec-pengeluaran">
+      <div class="sec-head">
+        <div><div class="sec-title">💸 Pengeluaran</div><div class="sec-sub">Catat semua biaya operasional</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-expense')">+ Tambah Pengeluaran</button>
+      </div>
+      <div class="g3">
+        <div class="stat-card"><div class="stat-label">Total Pengeluaran</div><div class="stat-val" style="color:var(--danger)" id="e-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">Bulan Ini</div><div class="stat-val" style="color:var(--warn)" id="e-thismonth">—</div></div>
+        <div class="stat-card"><div class="stat-label">Jumlah Transaksi</div><div class="stat-val" id="e-count">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">🧾 Riwayat Pengeluaran</div><button class="btn btn-outline btn-sm" onclick="openModal('modal-expense')">+ Tambah</button></div>
+        <div class="card-body" style="padding:0">
+          <table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Jumlah</th><th>Aksi</th></tr></thead>
+          <tbody id="expenseTable"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Memuat…</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PENJUALAN -->
+    <div class="page-section" id="sec-penjualan">
+      <div class="sec-head">
+        <div><div class="sec-title">🛒 Penjualan</div><div class="sec-sub">Catat hasil penjualan selada keriting</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-sale')">+ Tambah Penjualan</button>
+      </div>
+      <div class="info-box info">💡 Penjualan <strong>Tempo</strong> memerlukan approval sebelum aktif, dan tercatat sebagai piutang hingga dilunasi.</div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 Semua Transaksi Penjualan</div></div>
+        <div class="card-body" style="padding:0">
+          <table><thead><tr><th>Invoice</th><th>Tanggal</th><th>Pembeli</th><th>Qty (kg)</th><th>Harga/kg</th><th>Total</th><th>Bayar</th><th>Jatuh Tempo</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="saleTable"><tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Memuat…</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEMPO -->
+    <div class="page-section" id="sec-tempo">
+      <div class="sec-head"><div><div class="sec-title">🕐 Hutang Tempo</div><div class="sec-sub">Piutang yang menunggu pembayaran</div></div></div>
+      <div class="g3">
+        <div class="stat-card"><div class="stat-label">Total Piutang</div><div class="stat-val" id="tempoTotal">—</div><div class="stat-sub">belum terbayar</div></div>
+        <div class="stat-card"><div class="stat-label">Jatuh Tempo ≤ 7 hari</div><div class="stat-val" style="color:var(--warn)" id="tempoNear">—</div><div class="stat-sub">perlu perhatian</div></div>
+        <div class="stat-card"><div class="stat-label">Lewat Jatuh Tempo</div><div class="stat-val" style="color:var(--danger)" id="tempoOver">—</div><div class="stat-sub">segera tagih!</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 Daftar Piutang</div></div>
+        <div class="card-body" style="padding:0">
+          <table><thead><tr><th>Invoice</th><th>Pembeli</th><th>Tgl Jual</th><th>Qty</th><th>Total</th><th>Jatuh Tempo</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="tempoTable"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Memuat…</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL BATCH -->
+<div class="modal-overlay" id="modal-batch">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🌱 Tambah Batch Tanam Baru</div><div class="modal-close" onclick="closeModal('modal-batch')">✕</div></div>
+    <div class="modal-body">
+      <div class="info-box green">Sistem rakit apung · Semai 14 hari → Pindah rakit → Panen hari ke-50 · 200 gr/tanaman rata-rata</div>
+      <div class="form-row fc2">
+        <div class="form-group"><label>Tanggal Semai</label><input type="date" id="b-date" oninput="previewBatch()"></div>
+        <div class="form-group"><label>Jumlah Bibit Semai</label>
+          <div class="counter-wrap">
+            <button class="counter-btn" onclick="adjustCounter('b-qty',-10);previewBatch()">−</button>
+            <input type="number" id="b-qty" class="counter-input" placeholder="500" min="1" oninput="previewBatch()">
+            <button class="counter-btn" onclick="adjustCounter('b-qty',10);previewBatch()">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Catatan (opsional)</label><input type="text" id="b-note" placeholder="cth: Batch greenhouse A, varietas lokal"></div></div>
+      <div id="batchPreview" style="display:none">
+        <div class="info-box green" style="margin-bottom:0">
+          <div style="display:grid;gap:4px;font-size:13px;line-height:1.9">
+            <div>📅 <strong>Pindah Rakit Apung:</strong> <span id="p-pindah">—</span></div>
+            <div>🌾 <strong>Estimasi Panen:</strong> <span id="p-panen">—</span></div>
+            <div>⚖️ <strong>Estimasi Hasil:</strong> <span id="p-hasil">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-batch')">Batal</button>
+      <button class="btn btn-primary" id="btnSaveBatch" onclick="saveBatch()">Simpan Batch</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PINDAH -->
+<div class="modal-overlay" id="modal-pindah">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🪴 Pindah ke Rakit Apung</div><div class="modal-close" onclick="closeModal('modal-pindah')">✕</div></div>
+    <div class="modal-body">
+      <div id="pindah-info" class="info-box green"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Jumlah Bibit yang Dipindah</label>
+          <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">Sesuaikan jika ada bibit mati/tidak layak, atau tambah dari sumber lain.</div>
+          <div class="counter-wrap">
+            <button class="counter-btn" onclick="adjustCounter('pindah-qty',-1)">−</button>
+            <input type="number" id="pindah-qty" class="counter-input" min="0">
+            <button class="counter-btn" onclick="adjustCounter('pindah-qty',1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div id="pindah-diff" style="margin-top:4px;font-size:13px"></div>
+      <div class="form-row" style="margin-top:12px"><div class="form-group"><label>Catatan (opsional)</label><input type="text" id="pindah-note" placeholder="cth: 15 bibit tidak layak dibuang"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-pindah')">Batal</button>
+      <button class="btn btn-primary" onclick="confirmPindah()">Konfirmasi Pindah</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PANEN -->
+<div class="modal-overlay" id="modal-harvest">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🌾 Catat Hasil Panen</div><div class="modal-close" onclick="closeModal('modal-harvest')">✕</div></div>
+    <div class="modal-body">
+      <div id="harvest-info" class="info-box green"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hasil Panen Aktual (kg)</label>
+          <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">Timbang total hasil panen — bisa berbeda dari estimasi.</div>
+          <div class="counter-wrap">
+            <button class="counter-btn" onclick="adjustCounter('h-actual',-0.5)">−</button>
+            <input type="number" id="h-actual" class="counter-input" min="0" step="0.1" style="width:100px">
+            <button class="counter-btn" onclick="adjustCounter('h-actual',0.5)">+</button>
+          </div>
+        </div>
+      </div>
+      <div id="harvest-diff" style="margin-top:4px;font-size:13px"></div>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group"><label>Tanggal Panen Aktual</label><input type="date" id="h-date"></div>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Catatan</label><input type="text" id="h-note" placeholder="cth: cuaca panas, hasil sedikit lebih kecil"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-harvest')">Batal</button>
+      <button class="btn btn-primary" onclick="confirmHarvest()">Konfirmasi Panen</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENGELUARAN -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">💸 Catat Pengeluaran</div><div class="modal-close" onclick="closeModal('modal-expense')">✕</div></div>
+    <div class="modal-body">
+      <div class="form-row fc2">
+        <div class="form-group"><label>Tanggal</label><input type="date" id="e-date"></div>
+        <div class="form-group"><label>Kategori</label>
+          <select id="e-cat">
+            <option>Nutrisi AB Mix</option><option>Benih / Bibit</option><option>Listrik</option>
+            <option>Air</option><option>Rockwool / Media Tanam</option><option>Tenaga Kerja</option>
+            <option>Packaging / Plastik</option><option>Perawatan Alat</option>
+            <option>Rakit / Styrofoam</option><option>Lain-lain</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Keterangan</label><input type="text" id="e-desc" placeholder="cth: Beli AB Mix 5kg di toko Maju"></div></div>
+      <div class="form-row"><div class="form-group"><label>Jumlah (Rp)</label><input type="number" id="e-amount" placeholder="cth: 250000" min="0"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-expense')">Batal</button>
+      <button class="btn btn-primary" onclick="saveExpense()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENJUALAN -->
+<div class="modal-overlay" id="modal-sale">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🛒 Tambah Penjualan</div><div class="modal-close" onclick="closeModal('modal-sale')">✕</div></div>
+    <div class="modal-body">
+      <div class="form-row fc2">
+        <div class="form-group"><label>No. Invoice</label><input type="text" id="s-invoice" placeholder="otomatis" readonly style="background:var(--green-pale);font-family:'DM Mono',monospace;font-size:12px;color:var(--green);font-weight:700"></div>
+        <div class="form-group"><label>Tanggal Jual</label><input type="date" id="s-date" oninput="autoSetDue()"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Nama Pembeli</label><input type="text" id="s-buyer" placeholder="cth: Pak Budi / Superindo"></div>
+      </div>
+      <div class="form-row fc2">
+        <div class="form-group"><label>Qty (kg)</label><input type="number" id="s-qty" placeholder="cth: 50" min="0.1" step="0.1" oninput="updateSaleTotal()"></div>
+        <div class="form-group"><label>Harga per kg (Rp)</label><input type="number" id="s-price" placeholder="cth: 20000" oninput="updateSaleTotal()"></div>
+      </div>
+      <div id="s-totalPreview" style="background:var(--green-light);border:1.5px solid var(--green-border);border-radius:9px;padding:10px 14px;margin-bottom:14px;display:none">
+        <span style="font-size:12px;color:var(--text-muted)">Total:</span>
+        <span style="font-family:'Lora',serif;font-size:18px;font-weight:700;color:var(--green);margin-left:8px" id="s-totalNum">Rp 0</span>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Metode Pembayaran</label>
+        <select id="s-pay" onchange="toggleTempo()">
+          <option value="tunai">💵 Tunai (Langsung)</option>
+          <option value="transfer">🏦 Transfer Bank</option>
+          <option value="tempo">🕐 Tempo (Bayar Nanti)</option>
+        </select>
+      </div></div>
+      <div id="tempo-fields" style="display:none">
+        <div class="info-box warn">⚠️ Tempo perlu <strong>approval</strong> sebelum aktif. Tercatat sebagai piutang hingga dibayar.</div>
+        <div class="form-row fc2">
+          <div class="form-group"><label>Jatuh Tempo</label><input type="date" id="s-duedate"></div>
+          <div class="form-group"><label>Durasi Tempo</label>
+            <select id="s-tempodur" onchange="autoSetDue()">
+              <option value="7">7 hari</option><option value="14">14 hari</option>
+              <option value="30">30 hari</option><option value="custom">Kustom</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Catatan</label><input type="text" id="s-note" placeholder="opsional"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-sale')">Batal</button>
+      <button class="btn btn-primary" onclick="saveSale()">Simpan Penjualan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SALDO -->
+<div class="modal-overlay" id="modal-saldo">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">💰 Atur Saldo Awal</div><div class="modal-close" onclick="closeModal('modal-saldo')">✕</div></div>
+    <div class="modal-body">
+      <div class="info-box green">Masukkan <strong>saldo awal</strong> — saldo kas/rekening sebelum mulai pakai aplikasi ini. Saldo akhir dihitung otomatis: <strong>Saldo Awal + Pemasukan Lunas − Total Pengeluaran</strong>.</div>
+      <div class="form-row">
+        <div class="form-group"><label>Saldo Awal (Rp)</label><input type="number" id="saldo-input" placeholder="cth: 5000000" min="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Catatan (opsional)</label><input type="text" id="saldo-note" placeholder="cth: rekening BCA + kas tangan"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-saldo')">Batal</button>
+      <button class="btn btn-primary" onclick="saveSaldo()">Simpan Saldo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RENCANA PENGELUARAN -->
+<div class="modal-overlay" id="modal-rencana">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="r-modal-title">📅 Tambah Rencana Pengeluaran</div><div class="modal-close" onclick="closeModal('modal-rencana')">✕</div></div>
+    <div class="modal-body">
+      <input type="hidden" id="r-edit-id" value="">
+      <div class="form-row fc2">
+        <div class="form-group"><label>Bulan</label><input type="month" id="r-month"></div>
+        <div class="form-group"><label>Kategori</label>
+          <select id="r-cat">
+            <option>Nutrisi AB Mix</option><option>Benih / Bibit</option><option>Listrik</option>
+            <option>Air</option><option>Rockwool / Media Tanam</option><option>Tenaga Kerja</option>
+            <option>Packaging / Plastik</option><option>Perawatan Alat</option>
+            <option>Rakit / Styrofoam</option><option>Lain-lain</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Keterangan</label><input type="text" id="r-desc" placeholder="cth: Beli AB Mix bulanan"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Anggaran (Rp)</label><input type="number" id="r-amount" placeholder="cth: 500000" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-rencana')">Batal</button>
+      <button class="btn btn-primary" onclick="saveRencana()">Simpan Rencana</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CATAT PENGELUARAN DARI RENCANA -->
+<div class="modal-overlay" id="modal-catat-rencana">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">💸 Catat Pengeluaran</div>
+      <div class="modal-close" onclick="closeModal('modal-catat-rencana')">✕</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cr-rencana-id">
+      <input type="hidden" id="cr-cat">
+      <div style="background:var(--green-pale);border:1.5px solid var(--green-border);border-radius:10px;padding:12px 16px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px" id="cr-info-kat">—</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">Anggaran</div><div style="font-weight:700;font-size:13px" id="cr-info-anggaran">—</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">Terpakai</div><div style="font-weight:700;font-size:13px;color:var(--warn)" id="cr-info-terpakai">—</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">Sisa</div><div style="font-weight:700;font-size:13px;color:var(--green)" id="cr-info-sisa">—</div></div>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="cr-prog" style="width:0%"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-group"><label>Tanggal</label><input type="date" id="cr-date"></div>
+        <div class="form-group"><label>Jumlah (Rp)</label><input type="number" id="cr-amount" placeholder="0" min="1" oninput="checkCatatAmount()"></div>
+      </div>
+      <div id="cr-warn" style="display:none;background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--warn);margin-bottom:12px"></div>
+      <div class="form-group" style="margin-bottom:0"><label>Keterangan</label><input type="text" id="cr-desc" placeholder="opsional"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-catat-rencana')">Batal</button>
+      <button class="btn btn-primary" onclick="saveCatatRencana()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT BATCH -->
+<div class="modal-overlay" id="modal-edit-batch">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Batch Tanam</div>
+      <div class="modal-close" onclick="closeModal('modal-edit-batch')">✕</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="eb-id">
+      <div class="info-box green" id="eb-info" style="margin-bottom:16px">—</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Tanggal Semai</label>
+          <input type="date" id="eb-dateSemai" onchange="autoFillPanen()">
+        </div>
+        <div class="form-group">
+          <label>Jumlah Bibit Semai</label>
+          <div class="counter-wrap">
+            <button class="counter-btn" onclick="adjustCounter('eb-qty',-10)">−</button>
+            <input class="counter-input" type="number" id="eb-qty" min="1">
+            <button class="counter-btn" onclick="adjustCounter('eb-qty',10)">+</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Tanggal Pindah Rakit</label>
+          <input type="date" id="eb-datePindah">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Est. Panen</label>
+          <input type="date" id="eb-datePanen">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Catatan</label>
+        <input type="text" id="eb-note" placeholder="cth: meja 4, batch percobaan...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-batch')">Batal</button>
+      <button class="btn btn-primary" onclick="saveEditBatch()">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bn-item active" onclick="nav('dashboard',this)" data-page="dashboard"><span class="bn-ic">🏠</span><span class="bn-label">Home</span></button>
+  <button class="bn-item" onclick="nav('batch',this)" data-page="batch"><span class="bn-ic">🌱</span><span class="bn-label">Batch</span></button>
+  <button class="bn-item" onclick="nav('penjualan',this)" data-page="penjualan"><span class="bn-ic">🛒</span><span class="bn-label">Jual</span></button>
+  <button class="bn-item" onclick="nav('keuangan',this)" data-page="keuangan"><span class="bn-ic">📊</span><span class="bn-label">Keuangan</span></button>
+  <button class="bn-item" onclick="nav('pengeluaran',this)" data-page="pengeluaran"><span class="bn-ic">💸</span><span class="bn-label">Keluar</span></button>
+  <button class="bn-item" onclick="nav('rencanabulan',this)" data-page="rencanabulan"><span class="bn-ic">📅</span><span class="bn-label">Rencana</span><span class="bn-badge" id="bn-tempo-badge"></span></button>
+</nav>
+
+<div id="toast"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
